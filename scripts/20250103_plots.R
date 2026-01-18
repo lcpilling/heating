@@ -1,5 +1,8 @@
-## https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html
 
+# If doing on my old Windows PC change location of R packages
+.libPaths(c("E:/Luke/R_lib/4.2.2","E:/Program Files/R-4.2.2/library"))
+
+## https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html
 library(tidyverse)
 library(ggplot2)
 library(ggridges)
@@ -15,14 +18,14 @@ temps |> filter(id_probe %in% c("28-0516804150ff","28-0516803ebfff")) |> group_b
 temps |> filter(id_probe %in% c("28-0516804150ff","28-0516803ebfff")) |> filter(temp>40)
 
 ## just keep useful probe and columns
-temps = temps |> 
+temps = temps |>
   filter(id_probe=="28-0516804150ff") |>
   select(temp, date, name) |>
   rename(hour=name)
 
 ## format dates (annoying because unambiguous)
-temps = temps |> 
-  mutate(date=paste(substr(date,1,4), substr(date,5,6), substr(date,7,8), sep="-")) |> 
+temps = temps |>
+  mutate(date=paste(substr(date,1,4), substr(date,5,6), substr(date,7,8), sep="-")) |>
   mutate(date=as_date(date, format="%Y-%m-%d"))
 
 # exclude before 2017 & after 2023
@@ -55,9 +58,9 @@ temps = mutate(temps, datetime = ymd(date) + hours(hour))
 ## get density plot of temps in each year...
 p = ggplot(temps, aes(x = temp, y = as.factor(year), fill = stat(x))) +
 	geom_density_ridges_gradient(scale = 1, rel_min_height = 0.01) +
-	scale_x_continuous(expand = c(0.01, 0)) + 
+	scale_x_continuous(expand = c(0.01, 0)) +
 	scale_fill_viridis_c(name = "Temp. [C]", option = "C") +
-	labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') + 
+	labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') +
 	xlab("Temperature [C]") + ylab("Year") +
 	theme_ridges() + theme(legend.position = "none")
 p
@@ -74,12 +77,12 @@ dev.off()
 ## get density plot of temps in each month...
 p = ggplot(temps, aes(x = temp, y = fct_rev(month), fill = stat(x))) +
 	geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
-	scale_x_continuous(expand = c(0.01, 0)) + 
+	scale_x_continuous(expand = c(0.01, 0)) +
 	scale_fill_viridis_c(name = "Temp. [C]", option = "C") +
-	labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') + 
+	labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') +
 	xlab("Temperature [C]") + ylab("Month") +
 	theme_ridges() + theme(legend.position = "none")
-p 
+p
 
 
 ##
@@ -100,12 +103,12 @@ dev.off()
 
 p = ggplot(temps |> filter(month == "Aug"), aes(x = temp, y = as.factor(year), fill = stat(x))) +
   geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
-  scale_x_continuous(expand = c(0.01, 0)) + 
+  scale_x_continuous(expand = c(0.01, 0)) +
   scale_fill_viridis_c(name = "Temp. [C]", option = "C") +
-  labs(title = 'August temperatures recorded @ Pilling HQ, Exeter') + 
+  labs(title = 'August temperatures recorded @ Pilling HQ, Exeter') +
   xlab("Temperature [C]") + ylab("Year") +
   theme_ridges() + theme(legend.position = "none")
-p 
+p
 
 png("Pilling_house_temps_by_August_2017_2024.png",width=1800,height=1400,res=300)
 p
@@ -120,12 +123,12 @@ dev.off()
 
 p = ggplot(temps, aes(x = temp, y = as.factor(year), fill = stat(x))) +
   geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
-  scale_x_continuous(expand = c(0.01, 0)) + 
+  scale_x_continuous(expand = c(0.01, 0)) +
   scale_fill_viridis_c(name = "Temp. [C]", option = "C") +
-  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') + 
+  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') +
   xlab("Temperature [C]") + ylab("Year") +
   theme_ridges() + theme(legend.position = "none")
-p 
+p
 
 
 ##
@@ -150,7 +153,7 @@ temp_week = temps |>
 
 library(ComplexHeatmap)
 
-temp_week_M = temp_week |> 
+temp_week_M = temp_week |>
   pivot_wider(names_from = year, values_from = temp_avg) |>
   select(-week) |>
   as.matrix()
@@ -158,7 +161,7 @@ rownames(temp_week_M) = c(rep("",9), 10,
                           rep("",9), 20,
                           rep("",9), 30,
                           rep("",9), 40,
-                          rep("",9), 50, 
+                          rep("",9), 50,
                           "", "", "")
 
 cols <- rev(c('#370617', '#6a040f', '#9d0208', '#d00000', '#dc2f02', '#e85d04', '#f48c06', '#faa307', '#ffba08'))
@@ -180,15 +183,15 @@ dev.off()
 ## line plot over time
 p = ggplot(temps, aes(x = yday(date), y = temp)) +
   geom_line() +
-  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') + 
+  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') +
   xlab("Day of the year") + ylab("Temp. [C]") +
   scale_x_continuous(expand = c(0.01, 0),
                      breaks = c(1,32,60,91,121,152,182,213,244,274,305,335),
-                     labels = unique(temps$month)) + 
-  scale_y_continuous(limits=c(10,30)) + 
-  theme_bw() + 
+                     labels = unique(temps$month)) +
+  scale_y_continuous(limits=c(10,30)) +
+  theme_bw() +
   facet_grid(year ~ .)
-p 
+p
 
 png("Pilling_house_temps_over_day_2017_2024.png",width=2800,height=2000,res=300)
 p
@@ -196,7 +199,7 @@ dev.off()
 
 
 #
-# loading heating data 
+# loading heating data
 heating_data = read_tsv("action_events4.txt")
 
 # exclude before 2017 and after 2024
@@ -223,12 +226,12 @@ heating_periods = heating_periods |> mutate(year = year(start))
 p = ggplot(temps, aes(x = datetime, y = temp)) +
   geom_rect(data = heating_periods, aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf, group = year), fill = "#dc2f02", alpha = 1, inherit.aes = FALSE) +
   geom_line() +
-  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') + 
+  labs(title = 'Temperatures recorded @ Pilling HQ, Exeter') +
   xlab("Day of the year") + ylab("Temp. [C]") +
   scale_x_continuous(expand = c(0.01, 0), breaks = NULL) +
-  scale_y_continuous(limits=c(10,30)) + 
+  scale_y_continuous(limits=c(10,30)) +
   facet_wrap(~year, scales = "free_x", ncol=1, strip.position="right") +
-  theme_bw() 
+  theme_bw()
 
 p
 
