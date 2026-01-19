@@ -211,3 +211,116 @@ p
 ggsave("outputs/2026-01-17/06.temps_by_day.with_heating.png", width=12, height=10, units="cm", dpi=800, bg="white")
 ggsave("outputs/2026-01-17/07.temps_by_day.with_heating.HD.png", width=20, height=12, units="cm", dpi=1200, bg="white")
 
+
+##
+##
+## STATISTICAL ANALYSIS
+##
+##
+
+# Calculate duration of each heating period in hours
+heating_periods = heating_periods |>
+  mutate(duration_hours = as.numeric(difftime(end, start, units = "hours")))
+
+# Add month and year information for each period
+heating_periods = heating_periods |>
+  mutate(month = month(start, label = TRUE),
+         month_num = month(start))
+
+# Total heating hours by year
+heating_by_year = heating_periods |>
+  group_by(year) |>
+  summarise(total_hours = sum(duration_hours),
+            n_periods = n()) |>
+  arrange(year)
+
+cat("\n\n=== HEATING HOURS BY YEAR ===\n")
+print(heating_by_year)
+
+# Total heating hours by month (across all years)
+heating_by_month = heating_periods |>
+  group_by(month) |>
+  summarise(total_hours = sum(duration_hours),
+            n_periods = n()) |>
+  arrange(month)
+
+cat("\n\n=== HEATING HOURS BY MONTH (all years) ===\n")
+print(heating_by_month)
+
+# Total heating hours by month and year
+# Note: month_num is included in grouping to preserve it for seasonal analysis below
+heating_by_month_year = heating_periods |>
+  group_by(year, month, month_num) |>
+  summarise(total_hours = sum(duration_hours),
+            n_periods = n(),
+            .groups = 'drop') |>
+  arrange(year, month)
+
+cat("\n\n=== HEATING HOURS BY MONTH AND YEAR ===\n")
+print(heating_by_month_year, n = Inf)
+
+# Find month with most heating hours
+max_month_overall = heating_by_month |>
+  filter(total_hours == max(total_hours))
+
+cat("\n\n=== MONTH WITH MOST HEATING (overall) ===\n")
+cat(sprintf("Month: %s\nTotal hours: %.1f\nNumber of periods: %d\n",
+            max_month_overall$month, max_month_overall$total_hours, max_month_overall$n_periods))
+
+# Find month-year combination with most heating hours
+max_month_year = heating_by_month_year |>
+  filter(total_hours == max(total_hours))
+
+cat("\n\n=== MONTH-YEAR WITH MOST HEATING ===\n")
+cat(sprintf("Month-Year: %s %d\nTotal hours: %.1f\nNumber of periods: %d\n",
+            max_month_year$month, max_month_year$year, max_month_year$total_hours, max_month_year$n_periods))
+
+# Find year with most heating hours
+max_year = heating_by_year |>
+  filter(total_hours == max(total_hours))
+
+cat("\n\n=== YEAR WITH MOST HEATING ===\n")
+cat(sprintf("Year: %d\nTotal hours: %.1f\nNumber of periods: %d\n",
+            max_year$year, max_year$total_hours, max_year$n_periods))
+
+# Additional analysis: average heating hours per day by year
+heating_by_year = heating_by_year |>
+  mutate(days_in_year = if_else(lubridate::leap_year(year), 366, 365),
+         avg_hours_per_day = total_hours / days_in_year)
+
+cat("\n\n=== AVERAGE HEATING HOURS PER DAY BY YEAR ===\n")
+print(heating_by_year |> select(year, avg_hours_per_day))
+
+# Seasonal analysis: group months into seasons
+heating_by_month_year = heating_by_month_year |>
+  mutate(season = case_when(
+    month_num %in% c(12, 1, 2) ~ "Winter",
+    month_num %in% c(3, 4, 5) ~ "Spring",
+    month_num %in% c(6, 7, 8) ~ "Summer",
+    month_num %in% c(9, 10, 11) ~ "Autumn"
+  ))
+
+heating_by_season_year = heating_by_month_year |>
+  group_by(year, season) |>
+  summarise(total_hours = sum(total_hours),
+            .groups = 'drop') |>
+  arrange(year, factor(season, levels = c("Winter", "Spring", "Summer", "Autumn")))
+
+cat("\n\n=== HEATING HOURS BY SEASON AND YEAR ===\n")
+print(heating_by_season_year)
+
+# Overall summary statistics
+cat("\n\n=== OVERALL SUMMARY STATISTICS ===\n")
+cat(sprintf("Total heating hours (all years): %.1f\n", sum(heating_periods$duration_hours)))
+cat(sprintf("Average heating period duration: %.2f hours\n", mean(heating_periods$duration_hours)))
+cat(sprintf("Median heating period duration: %.2f hours\n", median(heating_periods$duration_hours)))
+cat(sprintf("Shortest heating period: %.2f hours\n", min(heating_periods$duration_hours)))
+cat(sprintf("Longest heating period: %.2f hours\n", max(heating_periods$duration_hours)))
+cat(sprintf("Total number of heating periods: %d\n", nrow(heating_periods)))
+
+# Years comparison
+cat("\n\n=== YEAR-OVER-YEAR COMPARISON ===\n")
+heating_by_year = heating_by_year |>
+  mutate(pct_change = (total_hours - lag(total_hours)) / lag(total_hours) * 100)
+print(heating_by_year |> select(year, total_hours, pct_change))
+
