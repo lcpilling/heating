@@ -249,7 +249,7 @@ print(heating_by_month)
 
 # Total heating hours by month and year
 heating_by_month_year = heating_periods |>
-  group_by(year, month) |>
+  group_by(year, month, month_num) |>
   summarise(total_hours = sum(duration_hours),
             n_periods = n(),
             .groups = 'drop') |>
