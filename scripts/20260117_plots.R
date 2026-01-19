@@ -284,7 +284,7 @@ cat(sprintf("Year: %d\nTotal hours: %.1f\nNumber of periods: %d\n",
 
 # Additional analysis: average heating hours per day by year
 heating_by_year = heating_by_year |>
-  mutate(days_in_year = if_else(year %% 4 == 0 & (year %% 100 != 0 | year %% 400 == 0), 366, 365),
+  mutate(days_in_year = if_else(leap_year(year), 366, 365),
          avg_hours_per_day = total_hours / days_in_year)
 
 cat("\n\n=== AVERAGE HEATING HOURS PER DAY BY YEAR ===\n")
