@@ -13,12 +13,10 @@ Purchased Jan 2013. Installed as central heating controller in Nov 2016. Run smo
 
 Date range included in analyses: 1 Jan 2017 to 31 Dec 2025
 
-Total heating hours = 5,071.9
-% of all hours = 6.4 % (of 78,887)
-
-Mean and SD heating period duration = 0.61 (0.47)
-
-Month with most heating hours = Jan 2019 (209 hours, 28% of total)
+ - Total heating hours = 5,072
+ - % of all hours = 6.4% (of 78,887)
+ - Mean and SD heating period duration = 0.61 (0.47)
+ - Month with most heating hours = Jan 2019 (209 hours, 28% of total)
 
 # Hours of active heating time
 
