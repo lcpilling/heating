@@ -411,7 +411,7 @@ print(heating_by_season_year)
 cat("\n\n=== OVERALL SUMMARY STATISTICS ===\n")
 cat(sprintf("Total heating hours (all years): %.1f\n", sum(heating_periods$duration_hours)))
 cat(sprintf("Precent of heating hours (all years): %.1f\n",
-						sum(heating_periods$duration_hours) / as.numeric(as.duration(interval(min(heating_periods$start), max(heating_periods$end))), "hours") * 100
+						sum(heating_periods$duration_hours) / as.numeric(as.duration(interval(min(dmy("01-01-2017")), max(dmy("31-12-2025")))), "hours") * 100
 ))
 cat(sprintf("Average heating period duration: %.2f hours\n", mean(heating_periods$duration_hours)))
 cat(sprintf("SD heating period duration: %.2f hours\n", sd(heating_periods$duration_hours)))
