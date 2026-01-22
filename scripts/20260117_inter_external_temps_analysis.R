@@ -93,8 +93,8 @@ external_temps = external_temps |>
 ## check completeness of tavg (average temperature)
 cat("\n\n=== EXTERNAL TEMPERATURE DATA COMPLETENESS ===\n")
 cat(sprintf("Total rows: %d\n", nrow(external_temps)))
-cat(sprintf("Missing tavg values: %d (%.1f%%)\n", 
-            sum(is.na(external_temps$tavg)), 
+cat(sprintf("Missing tavg values: %d (%.1f%%)\n",
+            sum(is.na(external_temps$tavg)),
             100 * sum(is.na(external_temps$tavg)) / nrow(external_temps)))
 
 ## Simple imputation for missing tavg values
@@ -102,16 +102,7 @@ cat(sprintf("Missing tavg values: %d (%.1f%%)\n",
 external_temps_imputed = external_temps
 
 for (i in 1:nrow(external_temps_imputed)) {
-	if (is.na(external_temps_imputed$tavg[i])) {
-		# Find nearest non-NA value above
-		above_idx = NA
-		for (j in (i-1):1) {
-			if (!is.na(external_temps_imputed$tavg[j])) {
-				above_idx = j
-				break
-			}
-		}
-		
+	if (i == 1 & is.na(external_temps_imputed$tavg[i])) {
 		# Find nearest non-NA value below
 		below_idx = NA
 		for (j in (i+1):nrow(external_temps_imputed)) {
@@ -120,10 +111,30 @@ for (i in 1:nrow(external_temps_imputed)) {
 				break
 			}
 		}
-		
+		external_temps_imputed$tavg[i] <-external_temps_imputed$tavg[below_idx]
+	}
+	else if (is.na(external_temps_imputed$tavg[i])) {
+		# Find nearest non-NA value above
+		above_idx = NA
+		for (j in (i-1):1) {
+			if (!is.na(external_temps_imputed$tavg[j])) {
+				above_idx = j
+				break
+			}
+		}
+
+		# Find nearest non-NA value below
+		below_idx = NA
+		for (j in (i+1):nrow(external_temps_imputed)) {
+			if (!is.na(external_temps_imputed$tavg[j])) {
+				below_idx = j
+				break
+			}
+		}
+
 		# Impute based on what we found
 		if (!is.na(above_idx) && !is.na(below_idx)) {
-			external_temps_imputed$tavg[i] = mean(c(external_temps_imputed$tavg[above_idx], 
+			external_temps_imputed$tavg[i] = mean(c(external_temps_imputed$tavg[above_idx],
 			                                         external_temps_imputed$tavg[below_idx]))
 		} else if (!is.na(above_idx)) {
 			external_temps_imputed$tavg[i] = external_temps_imputed$tavg[above_idx]
@@ -143,13 +154,13 @@ temps_daily = temps |>
 
 ## Merge internal and external temperatures
 merged_temps = temps_daily |>
-	left_join(external_temps_imputed |> select(date, tavg) |> rename(external_temp = tavg), 
+	left_join(external_temps_imputed |> select(date, tavg) |> rename(external_temp = tavg),
 	          by = "date")
 
 ## check merge
 cat("\n\n=== MERGED TEMPERATURE DATA ===\n")
 cat(sprintf("Total days: %d\n", nrow(merged_temps)))
-cat(sprintf("Days with both internal and external temps: %d\n", 
+cat(sprintf("Days with both internal and external temps: %d\n",
             sum(!is.na(merged_temps$internal_temp) & !is.na(merged_temps$external_temp))))
 
 ##
@@ -159,8 +170,8 @@ merged_temps = merged_temps |>
 	mutate(heating_on = FALSE)
 
 for (i in 1:nrow(heating_periods)) {
-	period_dates = seq.Date(as_date(heating_periods$start[i]), 
-	                        as_date(heating_periods$end[i]), 
+	period_dates = seq.Date(as_date(heating_periods$start[i]),
+	                        as_date(heating_periods$end[i]),
 	                        by = "day")
 	merged_temps$heating_on[merged_temps$date %in% period_dates] = TRUE
 }
@@ -173,10 +184,10 @@ cat("\n\n=== TEMPERATURE STATISTICS ===\n")
 
 # Overall temperature statistics
 cat("\n--- Overall Statistics ---\n")
-cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(merged_temps$internal_temp, na.rm = TRUE),
             sd(merged_temps$internal_temp, na.rm = TRUE)))
-cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(merged_temps$external_temp, na.rm = TRUE),
             sd(merged_temps$external_temp, na.rm = TRUE)))
 
@@ -184,7 +195,7 @@ cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n",
 merged_temps = merged_temps |>
 	mutate(temp_difference = internal_temp - external_temp)
 
-cat(sprintf("Temp difference (internal - external) - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Temp difference (internal - external) - Mean: %.2f°C, SD: %.2f°C\n",
             mean(merged_temps$temp_difference, na.rm = TRUE),
             sd(merged_temps$temp_difference, na.rm = TRUE)))
 
@@ -194,25 +205,25 @@ heating_off_temps = merged_temps |> filter(heating_on == FALSE)
 
 cat("\n--- When Heating is ON ---\n")
 cat(sprintf("Days with heating on: %d\n", nrow(heating_on_temps)))
-cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_on_temps$internal_temp, na.rm = TRUE),
             sd(heating_on_temps$internal_temp, na.rm = TRUE)))
-cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_on_temps$external_temp, na.rm = TRUE),
             sd(heating_on_temps$external_temp, na.rm = TRUE)))
-cat(sprintf("Temp difference - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Temp difference - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_on_temps$temp_difference, na.rm = TRUE),
             sd(heating_on_temps$temp_difference, na.rm = TRUE)))
 
 cat("\n--- When Heating is OFF ---\n")
 cat(sprintf("Days with heating off: %d\n", nrow(heating_off_temps)))
-cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Internal temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_off_temps$internal_temp, na.rm = TRUE),
             sd(heating_off_temps$internal_temp, na.rm = TRUE)))
-cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("External temp - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_off_temps$external_temp, na.rm = TRUE),
             sd(heating_off_temps$external_temp, na.rm = TRUE)))
-cat(sprintf("Temp difference - Mean: %.2f°C, SD: %.2f°C\n", 
+cat(sprintf("Temp difference - Mean: %.2f°C, SD: %.2f°C\n",
             mean(heating_off_temps$temp_difference, na.rm = TRUE),
             sd(heating_off_temps$temp_difference, na.rm = TRUE)))
 
@@ -222,21 +233,21 @@ heating_onset = tibble()
 
 for (yr in unique(merged_temps$year)) {
 	# Get heating periods starting after Aug 31 of this year
-	autumn_heating = heating_periods |> 
+	autumn_heating = heating_periods |>
 		filter(year == yr, month(start) >= 9) |>
 		arrange(start) |>
 		slice(1)
-	
+
 	if (nrow(autumn_heating) > 0) {
 		onset_date = as_date(autumn_heating$start[1])
-		
+
 		# Get external temp for that day and few days before
 		onset_temps = merged_temps |>
 			filter(date >= (onset_date - 7), date <= onset_date) |>
 			select(date, external_temp)
-		
-		heating_onset = bind_rows(heating_onset, 
-		                          tibble(year = yr, 
+
+		heating_onset = bind_rows(heating_onset,
+		                          tibble(year = yr,
 		                                 onset_date = onset_date,
 		                                 external_temp_onset = onset_temps$external_temp[onset_temps$date == onset_date],
 		                                 external_temp_week_avg = mean(onset_temps$external_temp, na.rm = TRUE)))
@@ -264,8 +275,8 @@ write_tsv(heating_onset, "outputs/2026-01-17/11.heating_onset.txt")
 ## 1. Line plot faceted by year showing internal and external temperatures
 merged_temps_long = merged_temps |>
 	select(date, year, month, internal_temp, external_temp, heating_on) |>
-	pivot_longer(cols = c(internal_temp, external_temp), 
-	             names_to = "temp_type", 
+	pivot_longer(cols = c(internal_temp, external_temp),
+	             names_to = "temp_type",
 	             values_to = "temperature") |>
 	mutate(temp_type = case_when(
 		temp_type == "internal_temp" ~ "Internal (Pilling HQ)",
@@ -274,7 +285,7 @@ merged_temps_long = merged_temps |>
 
 p = ggplot(merged_temps_long, aes(x = yday(date), y = temperature, color = temp_type)) +
 	geom_line(linewidth = 0.4) +
-	scale_color_manual(values = c("Internal (Pilling HQ)" = "#e63946", 
+	scale_color_manual(values = c("Internal (Pilling HQ)" = "#e63946",
 	                               "External (Exeter Airport)" = "#457b9d")) +
 	labs(title = "Internal vs External Temperatures by Year",
 	     color = "Temperature") +
@@ -288,36 +299,11 @@ p = ggplot(merged_temps_long, aes(x = yday(date), y = temperature, color = temp_
 
 p
 
-ggsave("outputs/2026-01-17/12.internal_vs_external_by_year.png", 
+ggsave("outputs/2026-01-17/12.internal_vs_external_by_year.png",
        width=16, height=20, units="cm", dpi=150, bg="white")
 
 
-## 2. Temperature difference over time with heating periods
-p = ggplot(merged_temps, aes(x = date, y = temp_difference)) +
-	geom_rect(data = heating_periods,
-						aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf, group = year),
-						fill = "#dc2f02", alpha = 0.3, inherit.aes = FALSE) +
-	geom_line(color = "#2a9d8f", linewidth = 0.5) +
-	geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-	labs(title = "Temperature Difference (Internal - External) over Time",
-	     subtitle = "Red shading indicates heating periods") +
-	xlab("Date") + ylab("Temp. Difference [°C]") +
-	scale_x_continuous(expand = c(0.01, 0), breaks = NULL) +
-	facet_wrap(~year, 
-	           ncol=1, 
-	           scales = "free_x",
-	           axes = "margins",
-	           strip.position="right") +
-	theme_bw() +
-	theme(panel.spacing.y = unit(0.1, "lines"))
-
-p
-
-ggsave("outputs/2026-01-17/13.temp_difference_over_time.png", 
-       width=16, height=20, units="cm", dpi=150, bg="white")
-
-
-## 3. Scatter plot of internal vs external temperature
+## 2. Scatter plot of internal vs external temperature
 p = ggplot(merged_temps, aes(x = external_temp, y = internal_temp, color = heating_on)) +
 	geom_point(alpha = 0.4, size = 1) +
 	geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50") +
@@ -332,11 +318,11 @@ p = ggplot(merged_temps, aes(x = external_temp, y = internal_temp, color = heati
 
 p
 
-ggsave("outputs/2026-01-17/14.internal_vs_external_scatter.png", 
+ggsave("outputs/2026-01-17/13.internal_vs_external_scatter.png",
        width=14, height=12, units="cm", dpi=150, bg="white")
 
 
-## 4. Ridge plot of temperature difference by month
+## 3. Ridge plot of temperature difference by month
 merged_temps_month = merged_temps |>
 	filter(!is.na(temp_difference))
 
@@ -352,16 +338,16 @@ p = ggplot(merged_temps_month, aes(x = temp_difference, y = fct_rev(month), fill
 
 p
 
-ggsave("outputs/2026-01-17/15.temp_difference_by_month.png", 
+ggsave("outputs/2026-01-17/14.temp_difference_by_month.png",
        width=14, height=12, units="cm", dpi=150, bg="white")
 
 
-## 5. Box plot showing temperature distributions when heating on vs off
+## 4. Box plot showing temperature distributions when heating on vs off
 merged_temps_long2 = merged_temps |>
 	filter(!is.na(internal_temp), !is.na(external_temp)) |>
 	select(date, heating_on, internal_temp, external_temp) |>
-	pivot_longer(cols = c(internal_temp, external_temp), 
-	             names_to = "temp_type", 
+	pivot_longer(cols = c(internal_temp, external_temp),
+	             names_to = "temp_type",
 	             values_to = "temperature") |>
 	mutate(temp_type = case_when(
 		temp_type == "internal_temp" ~ "Internal",
@@ -380,7 +366,7 @@ p = ggplot(merged_temps_long2, aes(x = heating_status, y = temperature, fill = t
 
 p
 
-ggsave("outputs/2026-01-17/16.heating_on_off_comparison.png", 
+ggsave("outputs/2026-01-17/15.heating_on_off_comparison.png",
        width=14, height=12, units="cm", dpi=150, bg="white")
 
 

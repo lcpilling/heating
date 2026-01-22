@@ -36,3 +36,16 @@ Date range included in analyses: 1 Jan 2017 to 31 Dec 2025
 
 <img src="outputs/2026-01-17/06.temps_by_day.with_heating.png">
 
+# Comparisons to external temperatures
+
+Weather data from https://meteostat.net/en/place/gb/exeter?s=03839&t=2017-01-01/2025-12-31
+
+Average temperature per day at the nearest climate station (Exeter Airport)
+
+<img src="outputs/2026-01-17/12.internal_vs_external_by_year.png">
+
+<img src="outputs/2026-01-17/13.internal_vs_external_scatter.png">
+
+<img src="outputs/2026-01-17/14.temp_difference_by_month.png">
+
+<img src="outputs/2026-01-17/15.heating_on_off_comparison.png">
