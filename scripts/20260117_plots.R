@@ -232,17 +232,56 @@ heating_by_year = heating_periods |>
   group_by(year) |>
   summarise(total_hours = sum(duration_hours),
             n_periods = n()) |>
-  arrange(year)
+  arrange(year) |>
+	mutate(days_in_year = if_else(lubridate::leap_year(year), 366, 365),
+				 percent_of_total = (total_hours / (days_in_year*24))*100)
 
 cat("\n\n=== HEATING HOURS BY YEAR ===\n")
 print(heating_by_year)
+
+write_tsv(heating_by_year, "outputs/2026-01-17/08.heating_by_year.txt")
+
+# plot of heating % in month facet by year
+p = ggplot(heating_by_year, aes(x = factor(year), y = total_hours)) +
+	geom_col(aes(fill = total_hours)) +
+	scale_fill_gradient(
+		low = "#FFD700",
+		high = "#CC5500",
+		name = "Hours"
+	) +
+	scale_y_continuous(
+		expand = c(0.01, 0),
+		name = "Hours of heating time",
+		breaks = seq(0, 1000, by = 200),
+		limits = c(0, 1000),
+		sec.axis = sec_axis(
+			~ . / (max(heating_by_year$total_hours) / max(heating_by_year$percent_of_total)),
+			name = "Percentage of Total (%)",
+			breaks = seq(0, 20, by = 2)
+			)
+		) +
+	labs(title = "Hours of active heating time") +
+	xlab("Year") +
+	theme_bw() +
+	theme(
+		legend.position = "none",
+		panel.grid.major = element_blank(),
+		panel.grid.minor = element_blank()
+		)
+p
+
+## save
+ggsave("outputs/2026-01-17/08.heating_by_year.png", width=11, height=9, units="cm", dpi=150, bg="white")
+
+
 
 # Total heating hours by month (across all years)
 heating_by_month = heating_periods |>
   group_by(month) |>
   summarise(total_hours = sum(duration_hours),
             n_periods = n()) |>
-  arrange(month)
+  arrange(month) |>
+	ungroup()
 
 cat("\n\n=== HEATING HOURS BY MONTH (all years) ===\n")
 print(heating_by_month)
@@ -254,10 +293,70 @@ heating_by_month_year = heating_periods |>
   summarise(total_hours = sum(duration_hours),
             n_periods = n(),
             .groups = 'drop') |>
-  arrange(year, month)
+	mutate(days_in_month = days_in_month(dmy(paste0("01-",month,"-",year))),
+				 percent_of_total = (total_hours / (days_in_month*24))*100) |>
+	ungroup()
+
+## fill in blanks
+for (m in 1:12)  {
+	for (y in min(heating_by_month_year$year):max(heating_by_month_year$year))  {
+		if (! m %in% heating_by_month_year$month_num[ heating_by_month_year$year == y ])  {
+			t <- data.frame(y, month(dmy(paste0("01-",m,"-",y)), label = TRUE), m, 0, 0, days_in_month(dmy(paste0("01-",m,"-",y))), 0)
+			colnames(t) <- colnames(heating_by_month_year)
+			heating_by_month_year <- rbind(heating_by_month_year, t)
+		}
+	}
+}
+
+heating_by_month_year <- heating_by_month_year |>
+	arrange(year, month)
 
 cat("\n\n=== HEATING HOURS BY MONTH AND YEAR ===\n")
 print(heating_by_month_year, n = Inf)
+
+write_tsv(heating_by_month_year, "outputs/2026-01-17/09.heating_by_month_year.txt")
+
+# plot of heating % in month facet by year
+p = ggplot(heating_by_month_year, aes(x = total_hours, y = fct_rev(month))) +
+	geom_col(aes(fill = total_hours)) +
+	scale_fill_gradient(
+		low = "#FFD700",
+		high = "#CC5500",
+		name = "Hours"
+	) +
+	scale_x_continuous(expand = c(0.01, 0)) +
+	labs(title = "Hours of active heating time") +
+	xlab("Hours of heating time by month and year") +
+	ylab("Month") +
+	theme_bw() +
+	theme(legend.position = "none") +
+	facet_wrap(year ~ .)
+p
+
+## save
+ggsave("outputs/2026-01-17/09.heating_by_month_year_1.png", width=18, height=16, units="cm", dpi=150, bg="white")
+
+# plot of heating % in month facet by year
+p = ggplot(heating_by_month_year, aes(x = total_hours, y = fct_rev(factor(year)))) +
+	geom_col(aes(fill = total_hours)) +
+	scale_fill_gradient(
+		low = "#FFD700",
+		high = "#CC5500",
+		name = "Hours"
+	) +
+	scale_x_continuous(expand = c(0.01, 0)) +
+	labs(title = "Hours of active heating time") +
+	xlab("Hours of heating time by month and year") +
+	ylab("Year") +
+	theme_bw() +
+	theme(legend.position = "none") +
+	facet_wrap(month ~ .)
+p
+
+## save
+ggsave("outputs/2026-01-17/09.heating_by_month_year_2.png", width=18, height=16, units="cm", dpi=150, bg="white")
+
+
 
 # Find month with most heating hours
 max_month_overall = heating_by_month |>
@@ -285,8 +384,7 @@ cat(sprintf("Year: %d\nTotal hours: %.1f\nNumber of periods: %d\n",
 
 # Additional analysis: average heating hours per day by year
 heating_by_year = heating_by_year |>
-  mutate(days_in_year = if_else(lubridate::leap_year(year), 366, 365),
-         avg_hours_per_day = total_hours / days_in_year)
+  mutate(avg_hours_per_day = total_hours / days_in_year)
 
 cat("\n\n=== AVERAGE HEATING HOURS PER DAY BY YEAR ===\n")
 print(heating_by_year |> select(year, avg_hours_per_day))
@@ -312,8 +410,11 @@ print(heating_by_season_year)
 # Overall summary statistics
 cat("\n\n=== OVERALL SUMMARY STATISTICS ===\n")
 cat(sprintf("Total heating hours (all years): %.1f\n", sum(heating_periods$duration_hours)))
+cat(sprintf("Precent of heating hours (all years): %.1f\n",
+						sum(heating_periods$duration_hours) / as.numeric(as.duration(interval(min(heating_periods$start), max(heating_periods$end))), "hours") * 100
+))
 cat(sprintf("Average heating period duration: %.2f hours\n", mean(heating_periods$duration_hours)))
-cat(sprintf("Median heating period duration: %.2f hours\n", median(heating_periods$duration_hours)))
+cat(sprintf("SD heating period duration: %.2f hours\n", sd(heating_periods$duration_hours)))
 cat(sprintf("Shortest heating period: %.2f hours\n", min(heating_periods$duration_hours)))
 cat(sprintf("Longest heating period: %.2f hours\n", max(heating_periods$duration_hours)))
 cat(sprintf("Total number of heating periods: %d\n", nrow(heating_periods)))
